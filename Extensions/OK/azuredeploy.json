@@ -221,7 +221,7 @@
 				  "fileUris": "[split(variables('fileUris'), ' ')]"
 				},
 	      "protectedSettings": {
-		         "commandToExecute": "[concat('bash install.sh']"
+		         "commandToExecute": "[concat('bash install.sh')]"
             }
 			  }
 			 }
