@@ -65,7 +65,7 @@
         "virtualNetworkName": "[parameters('vmName')]",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-        "fileUris": "https://raw.githubusercontent.com/Azure/DataScienceVM/master/Extensions/OK/install.sh"
+        "fileUris": "https://raw.githubusercontent.com/icokpy/DataScienceVM/okpy/Extensions/OK/install.sh"
     },
     "resources": [
         {
@@ -220,7 +220,7 @@
 				  "fileUris": "[split(variables('fileUris'), ' ')]"
 				},
 	      "protectedSettings": {
-		         "commandToExecute": "[concat('bash install.sh \"', parameters('adminUsername'))]"
+		         "commandToExecute": "[concat('bash install.sh ', parameters('adminUsername'))]"
             }
 			  }
 			 }

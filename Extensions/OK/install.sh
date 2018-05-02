@@ -1,7 +1,7 @@
 #!/bin/bash
 # Install OK.py
 
-export HOME=$1
+export HOME=/home/$1
 cd $HOME
 
 ENV_NAME=okpyenv2
