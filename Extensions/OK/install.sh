@@ -1,11 +1,20 @@
 #!/bin/bash
 # Install OK.py
+username="${1}"
 
-#conda create -n okpyenv python=3.5
-#source /anaconda/bin/activate okpyenv
-#wget https://raw.githubusercontent.com/Cal-CS-61A-Staff/ok-client/master/requirements.txt
-#pip install -r requirements.txt
-pip3 install -U okpy
+if [ -z "${username}" ]; then
+  echo "no username :(" >> /tmp/debug-deploy
+  username="barral"
+else
+  echo "username: ${username}" >> /tmp/debug-deploy
+fi
 
-#test
-python3 -c "from client.api.notebook import Notebook"
+venv_path="/home/${username}/okpyenv2"
+
+python3 -m venv "${venv_path}" --without-pip
+
+curl https://bootstrap.pypa.io/get-pip.py | "${venv_path}/bin/python"
+
+"${venv_path}/bin/pip" install okpy
+
+"${venv_path}/bin/python" -c "from client.api.notebook import Notebook"
