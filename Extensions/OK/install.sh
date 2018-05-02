@@ -1,6 +1,9 @@
 #!/bin/bash
 # Install OK.py
 
+export HOME=$1
+cd $HOME
+
 ENV_NAME=okpyenv2
 
 python3 -m venv $ENV_NAME --without-pip
