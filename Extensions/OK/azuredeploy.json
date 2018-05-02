@@ -42,14 +42,7 @@
             "metadata": {
                 "description": "Size for the Virtual Machine."
 			}
-        },
-		"deviceconnectionstring": {
-            "type": "securestring",
-            "metadata": {
-                "description": "OKpy Connection String."
-            }
-        }		
-		
+        }
     },
     "variables": {
         "location": "[resourceGroup().location]",
@@ -227,7 +220,7 @@
 				  "fileUris": "[split(variables('fileUris'), ' ')]"
 				},
 	      "protectedSettings": {
-		         "commandToExecute": "[concat('bash install.sh \"', parameters('deviceconnectionstring'), '\" ', parameters('adminUsername'))]"
+		         "commandToExecute": "[concat('bash install.sh \"', parameters('adminUsername'))]"
             }
 			  }
 			 }
