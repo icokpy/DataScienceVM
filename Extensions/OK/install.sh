@@ -4,6 +4,9 @@
 export HOME=/home/$1
 cd $HOME
 
+echo "THE HOME VARIABLE IS SET THERE: "
+echo $HOME
+
 ENV_NAME=okpyenv2
 
 python3 -m venv $ENV_NAME --without-pip
