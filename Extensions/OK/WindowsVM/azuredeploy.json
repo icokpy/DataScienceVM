@@ -65,7 +65,7 @@
         "virtualNetworkName": "[parameters('vmName')]",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-        "fileUris": "https://raw.githubusercontent.com/icokpy/DataScienceVM/okpy/Extensions/OK/install.sh"
+        "fileUris": "https://raw.githubusercontent.com/icokpy/DataScienceVM/okpy/Extensions/OK/WindowsVM/install.ps1"
     },
     "resources": [
         {
