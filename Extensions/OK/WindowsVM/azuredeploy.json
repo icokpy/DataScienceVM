@@ -220,7 +220,7 @@
 				  "fileUris": "[split(variables('fileUris'), ' ')]"
 				},
 	      "protectedSettings": {
-		         "commandToExecute": "[concat('bash install.ps1 ', parameters('adminUsername'))]"
+		         "commandToExecute": "[concat('powershell install.ps1 ', parameters('adminUsername'))]"
             }
 			  }
 			 }
