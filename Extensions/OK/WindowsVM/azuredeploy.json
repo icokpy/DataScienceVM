@@ -19,40 +19,70 @@
             "metadata": {
                 "description": "Name Prefix for the Virtual Machine."
             }
+        },
+        "vmSize": {
+            "defaultValue": "Standard_NC6",
+            "allowedValues": [
+                "Standard_NC6",
+                "Standard_NC12",
+                "Standard_NC24"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "Size for the Virtual Machine."
+            }
         }
     },
     "variables": {
-        "nicName": "myVMNic",
+        "location": "[resourceGroup().location]",
+        "imagePublisher": "microsoft-ads",
+        "imageOffer": "standard-data-science-vm",
+        "OSDiskName": "osdisk",
+        "sku": "standard-data-science-vm",
+        "nicName": "[parameters('vmName')]",
         "addressPrefix": "10.0.0.0/16",
         "subnetName": "Subnet",
         "subnetPrefix": "10.0.0.0/24",
-        "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
-        "vmName": "MyVM",
-        "virtualNetworkName": "MyVNET",
-        "publicIPAddressName": "myPublicIP",
-        "dnsNameForPublicIP": "[uniqueString(resourceGroup().id)]",
-        "scriptFolder": ".",
-        "scriptFileName": "Copy-FileFromAzure.ps1",
-        "fileToBeCopied": "FileToBeCopied.txt"
+        "storageAccountType": "Standard_LRS",
+        "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'dsvm')]",
+        "publicIPAddressType": "Dynamic",
+        "publicIPAddressName": "[parameters('vmName')]",
+        "vmStorageAccountContainerName": "vhds",
+        "vmName": "[parameters('vmName')]",
+        "vmSize": "[parameters('vmSize')]",
+        "virtualNetworkName": "[parameters('vmName')]",
+        "networkSecurityGroupName": "[concat(parameters('vmName'),'_NSG')]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+        "apiVersion": "2015-06-15"
     },
     "resources": [
         {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageAccountName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('publicIPAddressName')]",
-            "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
             "properties": {
-                "publicIPAllocationMethod": "Dynamic",
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
                 "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsNameForPublicIP')]"
+                    "domainNameLabel": "[variables('publicIPAddressName')]"
                 }
             }
         },
         {
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('virtualNetworkName')]",
-            "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
@@ -70,10 +100,33 @@
             }
         },
         {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('networkSecurityGroupName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-rdp",
+                        "properties": {
+                            "priority": 1000,
+                            "sourceAddressPrefix": "*",
+                            "protocol": "Tcp",
+                            "destinationPortRange": "3389",
+                            "access": "Allow",
+                            "direction": "inbound",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    }
+                ]
+            }
+        },
+        {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('nicName')]",
-            "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
             "properties": {
                 "ipConfigurations": [
                     {
@@ -88,21 +141,33 @@
                             }
                         }
                     }
-                ]
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
             },
             "dependsOn": [
-                "[variables('publicIPAddressName')]",
-                "[variables('virtualNetworkName')]"
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
             ]
         },
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('vmName')]",
-            "apiVersion": "2016-04-30-preview",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+            "plan": {
+                "name": "standard-data-science-vm",
+                "publisher": "[variables('imagePublisher')]",
+                "product": "standard-data-science-vm"
+            },
+            "tags": {
+                "Application": "DataScience"
+            },
             "properties": {
                 "hardwareProfile": {
-                    "vmSize": "Standard_D1_v2"
+                    "vmSize": "[variables('vmSize')]"
                 },
                 "osProfile": {
                     "computerName": "[variables('vmName')]",
@@ -111,12 +176,17 @@
                 },
                 "storageProfile": {
                     "imageReference": {
-                        "publisher": "MicrosoftWindowsServer",
-                        "offer": "WindowsServer",
-                        "sku": "2016-Datacenter",
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('sku')]",
                         "version": "latest"
                     },
                     "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), variables('vmName'),  '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
                         "createOption": "FromImage"
                     }
                 },
@@ -126,40 +196,45 @@
                             "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
                         }
                     ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net')]"
+                    }
                 }
             },
-            "resources": [
-                {
-                    "type": "extensions",
-                    "name": "CustomScriptExtension",
-                    "apiVersion": "2015-06-15",
-                    "location": "[resourceGroup().location]",
-                    "properties": {
-                        "publisher": "Microsoft.Compute",
-                        "type": "CustomScriptExtension",
-                        "typeHandlerVersion": "1.8",
-                        "autoUpgradeMinorVersion": true,
-                        "settings": {
-                            "fileUris": [
-                                "https://raw.githubusercontent.com/icokpy/DataScienceVM/okpy/Extensions/OK/WindowsVM/install.ps1"
-                            ],
-                            "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install.ps1"
-                        }
-                    },
-                    "dependsOn": [
-                        "[variables('vmName')]"
-                    ]
-                }
-            ],
             "dependsOn": [
-                "[variables('nicName')]"
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmName'),'/DSVMDeepLearning')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[variables('location')]",
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.8",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://github.com/icokpy/DataScienceVM/blob/588583ed41495c1e05be1d9e9bd977ef2ae024c1/Extensions/OK/WindowsVM/install.ps1"
+                    ],
+                    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File install.ps1"
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/',variables('vmName'))]"
             ]
         }
     ],
     "outputs": {
-        "vm-fqdn": {
+        "DataScienceVmUrl": {
             "type": "String",
-            "value": "[reference(variables('publicIPAddressName'), '2016-03-30').dnsSettings.fqdn]"
+            "value": "[concat('https://ms.portal.azure.com/#resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Compute/virtualMachines/', variables('vmName'))]"
         }
     }
 }
